@@ -1,9 +1,0 @@
-using UnityEngine;
-
-public class WebXRManager : MonoBehaviour
-{
-    void Start()
-    {
-        Debug.Log("WebXR system initialized");
-    }
-}
