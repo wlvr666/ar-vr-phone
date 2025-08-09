@@ -1,14 +1,46 @@
-# Gradle files
-.gradle/
-build/
+################################
+# Unity
+################################
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+UserSettings/
 
-# Local configuration file (sdk path, etc)
-local.properties
+# Unity auto-generated
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
 
-# Log/OS Files
+# Asset Store Tools
+/[Aa]ssets/AssetStoreTools*
+
+################################
+# WebXR / Web
+################################
+node_modules/
+dist/
+.cache/
 *.log
 
-# Android Studio generated files and folders
+################################
+# Android / ARCore
+################################
+.gradle/
+build/
+local.properties
 captures/
 .externalNativeBuild/
 .cxx/
@@ -16,7 +48,7 @@ captures/
 *.apk
 output-metadata.json
 
-# IntelliJ
+# IntelliJ / Android Studio
 *.iml
 .idea/
 misc.xml
@@ -27,8 +59,14 @@ render.experimental.xml
 *.jks
 *.keystore
 
-# Google Services (e.g. APIs or Firebase)
+# Google Services
 google-services.json
 
 # Android Profiling
 *.hprof
+
+################################
+# OS-specific
+################################
+.DS_Store
+Thumbs.db
