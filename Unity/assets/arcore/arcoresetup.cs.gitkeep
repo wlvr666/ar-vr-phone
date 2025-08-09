@@ -1,1 +1,11 @@
+using UnityEngine;
+using UnityEngine.XR.ARFoundation;
 
+[RequireComponent(typeof(ARSession))]
+public class ARCoreSetup : MonoBehaviour
+{
+    void Start()
+    {
+        Debug.Log("ARCore session started");
+    }
+}
