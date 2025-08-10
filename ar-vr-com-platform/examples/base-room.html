@@ -1,1 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Base Room Example - AR/VR Communication Platform</title>
+    
+    <!-- Meta tags for AR/VR -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <style>
+        /* Basic styling for the example */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+        
+        .status {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+        
+        .status-dot.connected {
+            background: #44ff44;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        
+        .ar-viewport {
+            flex: 1;
+            background: #000;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .ar-viewport canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .placeholder {
+            text-align: center;
+            color: #888;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            border-radius: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .control-btn.active {
+            background: #4CAF50;
+        }
+        
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .sidebar h3 {
+            margin-bottom: 1rem;
+            font-weight: 300;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 0.5rem;
+        }
+        
+        .user-list {
+            margin-bottom: 2rem;
+        }
+        
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+        
+        .object-controls {
+            margin-bottom: 2rem;
+        }
+        
+        .object-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        
+        .object-btn {
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .object-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .room-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .room-info h4 {
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+        
+        .room-info p {
+            font-size: 0.85rem;
+            color: #ccc;
+            margin-bottom: 0.25rem;
+        }
+        
+        .notifications {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .notification {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #4CAF50;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s ease;
+        }
+        
+        .notification.error {
+            border-left-color: #f44336;
+        }
+        
+        .notification.warning {
+            border-left-color: #ff9800;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .controls {
+                bottom: 220px;
+            }
+            
+            .header {
+                padding: 0.5rem;
+            }
+            
+            .header h1 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚀 Base AR/VR Room</h1>
+            <div class="status">
+                <div class="status-item">
+                    <div class="status-dot" id="connection-status"></div>
+                    <span id="connection-text">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="xr-status"></div>
+                    <span id="xr-text">No Session</span>
+                </div>
+            </div>
+        </div>
 
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- AR/VR Viewport -->
+            <div class="ar-viewport" id="ar-viewport">
+                <div class="placeholder" id="ar-placeholder">
+                    <h2>🥽 AR/VR Viewport</h2>
+                    <p>Click "Start AR" or "Start VR" to begin</p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button class="control-btn" id="start-ar" title="Start AR Session">
+                    📱
+                </button>
+                <button class="control-btn" id="start-vr" title="Start VR Session">
+                    🥽
+                </button>
+                <button class="control-btn" id="mic-toggle" title="Toggle Microphone">
+                    🎤
+                </button>
+                <button class="control-btn" id="camera-toggle" title="Toggle Camera">
+                    📹
+                </button>
+                <button class="control-btn" id="leave-room" title="Leave Room">
+                    🚪
+                </button>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Users -->
+                <div class="user-list">
+                    <h3>👥 Users (<span id="user-count">1</span>)</h3>
+                    <div id="users-container">
+                        <div class="user-item">
+                            <div class="user-avatar">You</div>
+                            <div>
+                                <div>You</div>
+                                <small>Host</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Object Controls -->
+                <div class="object-controls">
+                    <h3>📦 Add Objects</h3>
+                    <div class="object-grid">
+                        <button class="object-btn" data-object="cube">
+                            📦 Cube
+                        </button>
+                        <button class="object-btn" data-object="sphere">
+                            ⚽ Sphere
+                        </button>
+                        <button class="object-btn" data-object="plane">
+                            ⬜ Plane
+                        </button>
+                        <button class="object-btn" data-object="avatar">
+                            👤 Avatar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Room Info -->
+                <div class="room-info">
+                    <h4>📍 Room Info</h4>
+                    <p><strong>Room ID:</strong> <span id="room-id">room_example_001</span></p>
+                    <p><strong>Objects:</strong> <span id="object-count">0</span></p>
+                    <p><strong>Created:</strong> <span id="room-created">Just now</span></p>
+                    <p><strong>Status:</strong> <span id="room-status">Active</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="notifications" id="notifications"></div>
+
+    <!-- Three.js and Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        /**
+         * Base Room Example - AR/VR Communication Platform
+         * Demonstrates core functionality in a simple implementation
+         */
+        class BaseRoom {
+            constructor() {
+                this.socket = null;
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.xrSession = null;
+                
+                this.roomId = 'room_example_' + Date.now();
+                this.userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                this.userName = 'User ' + Math.floor(Math.random() * 1000);
+                
+                this.users = new Map();
+                this.objects = new Map();
+                
+                this.isConnected = false;
+                this.isXRActive = false;
+                
+                this.init();
+            }
+
+            async init() {
+                console.log('🚀 Initializing Base Room...');
+                
+                // Setup Three.js
+                this.setupThreeJS();
+                
+                // Setup Socket.IO
+                this.setupSocket();
+                
+                // Setup UI event handlers
+                this.setupEventHandlers();
+                
+                // Auto-join room
+                setTimeout(() => {
+                    this.joinRoom();
+                }, 1000);
+            }
+
+            setupThreeJS() {
+                const container = document.getElementById('ar-viewport');
+                
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x222222);
+                
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(
+                    75, 
+                    container.clientWidth / container.clientHeight, 
+                    0.1, 
+                    1000
+                );
+                this.camera.position.set(0, 1.6, 3);
+                
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+                this.renderer.xr.enabled = true;
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                // Add to DOM
+                container.innerHTML = '';
+                container.appendChild(this.renderer.domElement);
+                
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 10, 5);
+                directionalLight.castShadow = true;
+                this.scene.add(directionalLight);
+                
+                // Ground plane
+                const groundGeometry = new THREE.PlaneGeometry(10, 10);
+                const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+                
+                // Start render loop
+                this.renderer.setAnimationLoop(() => {
+                    this.render();
+                });
+                
+                // Handle resize
+                window.addEventListener('resize', () => {
+                    this.handleResize();
+                });
+                
+                console.log('✅ Three.js setup complete');
+            }
+
+            setupSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const socketUrl = `${protocol}//${window.location.host}`;
+                
+                this.socket = io(socketUrl);
+                
+                // Connection events
+                this.socket.on('connect', () => {
+                    console.log('🔌 Connected to server');
+                    this.isConnected = true;
+                    this.updateConnectionStatus(true);
+                });
+                
+                this.socket.on('disconnect', () => {
+                    console.log('🔌 Disconnected from server');
+                    this.isConnected = false;
+                    this.updateConnectionStatus(false);
+                });
+                
+                // Room events
+                this.socket.on('room-joined', (data) => {
+                    this.handleRoomJoined(data);
+                });
+                
+                this.socket.on('user-joined', (data) => {
+                    this.handleUserJoined(data);
+                });
+                
+                this.socket.on('user-left', (data) => {
+                    this.handleUserLeft(data);
+                });
+                
+                this.socket.on('user-position-update', (data) => {
+                    this.handleUserPositionUpdate(data);
+                });
+                
+                // Object events
+                this.socket.on('object-spawned', (data) => {
+                    this.handleObjectSpawned(data);
+                });
+                
+                console.log('✅ Socket.IO setup complete');
+            }
+
+            setupEventHandlers() {
+                // AR/VR buttons
+                document.getElementById('start-ar').addEventListener('click', () => {
+                    this.startAR();
+                });
+                
+                document.getElementById('start-vr').addEventListener('click', () => {
+                    this.startVR();
+                });
+                
+                // Media controls
+                document.getElementById('mic-toggle').addEventListener('click', (e) => {
+                    e.target.classList.toggle('active');
+                    this.showNotification(
+                        `Microphone ${e.target.classList.contains('active') ? 'enabled' : 'disabled'}`
+                    );
+                });
+                
+                document.getElementById('camera-toggle').addEventListener('click', (e) => {
+                    e.target.classList.toggle('active');
+                    this.showNotification(
+                        `Camera ${e.target.classList.contains('active') ? 'enabled' : 'disabled'}`
+                    );
+                });
+                
+                // Leave room
+                document.getElementById('leave-room').addEventListener('click', () => {
+                    this.leaveRoom();
+                });
+                
+                // Object spawning
+                document.querySelectorAll('.object-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const objectType = btn.getAttribute('data-object');
+                        this.spawnObject(objectType);
+                    });
+                });
+                
+                console.log('✅ Event handlers setup complete');
+            }
+
+            // Room Management
+            joinRoom() {
+                if (!this.isConnected) {
+                    console.warn('Not connected to server');
+                    return;
+                }
+                
+                console.log(`📍 Joining room: ${this.roomId}`);
+                
+                this.socket.emit('join-room', {
+                    roomId: this.roomId,
+                    user: {
+                        id: this.userId,
+                        name: this.userName,
+                        position: [0, 1.6, 3],
+                        rotation: [0, 0, 0]
+                    }
+                });
+            }
+
+            leaveRoom() {
+                if (this.socket) {
+                    this.socket.emit('leave-room', {
+                        roomId: this.roomId,
+                        userId: this.userId
+                    });
+                }
+                
+                // Reset UI
+                this.users.clear();
+                this.updateUserList();
+                this.showNotification('Left room', 'warning');
+            }
+
+            // AR/VR Session Management
+            async startAR() {
+                try {
+                    console.log('📱 Starting AR session...');
+                    
+                    if (!navigator.xr) {
+                        throw new Error('WebXR not supported');
+                    }
+                    
+                    const session = await navigator.xr.requestSession('immersive-ar', {
+                        requiredFeatures: ['local'],
+                        optionalFeatures: ['dom-overlay', 'hit-test']
+                    });
+                    
+                    await this.renderer.xr.setSession(session);
+                    this.xrSession = session;
+                    this.isXRActive = true;
+                    
+                    this.updateXRStatus(true, 'AR');
+                    this.showNotification('AR session started', 'success');
+                    
+                    session.addEventListener('end', () => {
+                        this.handleXRSessionEnd();
+                    });
+                    
+                } catch (error) {
+                    console.error('Failed to start AR session:', error);
+                    this.showNotification('AR not available', 'error');
+                }
+            }
+
+            async startVR() {
+                try {
+                    console.log('🥽 Starting VR session...');
+                    
+                    if (!navigator.xr) {
+                        throw new Error('WebXR not supported');
+                    }
+                    
+                    const session = await navigator.xr.requestSession('immersive-vr');
+                    
+                    await this.renderer.xr.setSession(session);
+                    this.xrSession = session;
+                    this.isXRActive = true;
+                    
+                    this.updateXRStatus(true, 'VR');
+                    this.showNotification('VR session started', 'success');
+                    
+                    session.addEventListener('end', () => {
+                        this.handleXRSessionEnd();
+                    });
+                    
+                } catch (error) {
+                    console.error('Failed to start VR session:', error);
+                    this.showNotification('VR not available', 'error');
+                }
+            }
+
+            handleXRSessionEnd() {
+                console.log('🔚 XR session ended');
+                this.xrSession = null;
+                this.isXRActive = false;
+                this.updateXRStatus(false);
+                this.showNotification('XR session ended');
+            }
+
+            // Object Management
+            spawnObject(type) {
+                const objectId = `obj_${type}_${Date.now()}`;
+                const position = [
+                    (Math.random() - 0.5) * 4,
+                    1 + Math.random() * 2,
+                    -2 - Math.random() * 2
+                ];
+                
+                const objectData = {
+                    id: objectId,
+                    type: type,
+                    position: position,
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                    color: this.getRandomColor()
+                };
+                
+                // Add to local scene
+                this.addObjectToScene(objectData);
+                
+                // Broadcast to room
+                if (this.socket) {
+                    this.socket.emit('spawn-object', {
+                        roomId: this.roomId,
+                        object: objectData
+                    });
+                }
+                
+                this.showNotification(`${type} spawned`);
+                this.updateObjectCount();
+            }
+
+            addObjectToScene(objectData) {
+                let geometry, material;
+                
+                switch (objectData.type) {
+                    case 'cube':
+                        geometry = new THREE.BoxGeometry(1, 1, 1);
+                        break;
+                    case 'sphere':
+                        geometry = new THREE.SphereGeometry(0.5, 16, 12);
+                        break;
+                    case 'plane':
+                        geometry = new THREE.PlaneGeometry(1, 1);
+                        break;
+                    case 'avatar':
+                        geometry = new THREE.CapsuleGeometry(0.3, 1.6, 4, 8);
+                        break;
+                    default:
+                        geometry = new THREE.BoxGeometry(1, 1, 1);
+                }
+                
+                material = new THREE.MeshLambertMaterial({ 
+                    color: objectData.color || 0x00ff00 
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(...objectData.position);
+                mesh.rotation.set(...objectData.rotation);
+                mesh.scale.set(...objectData.scale);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                
+                mesh.userData = { id: objectData.id, type: objectData.type };
+                
+                this.scene.add(mesh);
+                this.objects.set(objectData.id, mesh);
+            }
+
+            // Event Handlers
+            handleRoomJoined(data) {
+                console.log('📍 Room joined:', data.room);
+                
+                // Load existing users
+                data.room.users.forEach(user => {
+                    if (user.id !== this.userId) {
+                        this.addUser(user);
+                    }
+                });
+                
+                // Load existing objects
+                if (data.room.objects) {
+                    data.room.objects.forEach(object => {
+                        this.addObjectToScene(object);
+                    });
+                }
+                
+                this.updateUserList();
+                this.updateObjectCount();
+                this.showNotification('Joined room successfully', 'success');
+            }
+
+            handleUserJoined(data) {
+                console.log('👋 User joined:', data.user);
+                this.addUser(data.user);
+                this.updateUserList();
+                this.showNotification(`${data.user.name} joined`);
+            }
+
+            handleUserLeft(data) {
+                console.log('👋 User left:', data.user);
+                const userId = data.user.userId || data.user.id;
+                this.removeUser(userId);
+                this.updateUserList();
+                this.showNotification(`${data.user.name || 'User'} left`);
+            }
+
+            handleUserPositionUpdate(data) {
+                const user = this.users.get(data.userId);
+                if (user) {
+                    user.position = data.position;
+                    user.rotation = data.rotation;
+                    // Update user avatar position in 3D scene if exists
+                    this.updateUserAvatar(data.userId, data.position, data.rotation);
+                }
+            }
+
+            handleObjectSpawned(data) {
+                console.log('📦 Object spawned:', data.object);
+                this.addObjectToScene(data.object);
+                this.updateObjectCount();
+            }
+
+            // User Management
+            addUser(user) {
+                this.users.set(user.id, user);
+                
+                // Create user avatar in 3D scene
+                const avatarGeometry = new THREE.CapsuleGeometry(0.2, 1.4, 4, 8);
+                const avatarMaterial = new THREE.MeshLambertMaterial({ 
+                    color: this.getUserColor(user.id) 
+                });
+                
+                const avatar = new THREE.Mesh(avatarGeometry, avatarMaterial);
+                avatar.position.set(...(user.position || [0, 0.8, 0]));
+                avatar.castShadow = true;
+                avatar.userData = { userId: user.id, type: 'avatar' };
+                
+                this.scene.add(avatar);
+                this.objects.set(`avatar_${user.id}`, avatar);
+            }
+
+            removeUser(userId) {
+                this.users.delete(userId);
+                
+                // Remove user avatar from scene
+                const avatarId = `avatar_${userId}`;
+                const avatar = this.objects.get(avatarId);
+                if (avatar) {
+                    this.scene.remove(avatar);
+                    this.objects.delete(avatarId);
+                }
+            }
+
+            updateUserAvatar(userId, position, rotation) {
+                const avatarId = `avatar_${userId}`;
+                const avatar = this.objects.get(avatarId);
+                if (avatar) {
+                    avatar.position.set(...position);
+                    avatar.rotation.set(...rotation);
+                }
+            }
+
+            // UI Updates
+            updateConnectionStatus(connected) {
+                const statusDot = document.getElementById('connection-status');
+                const statusText = document.getElementById('connection-text');
+                
+                if (connected) {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Connected';
+                } else {
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'Disconnected';
+                }
+            }
+
+            updateXRStatus(active, mode = null) {
+                const statusDot = document.getElementById('xr-status');
+                const statusText = document.getElementById('xr-text');
+                
+                if (active) {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = mode ? `${mode} Active` : 'Active';
+                } else {
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'No Session';
+                }
+            }
+
+            updateUserList() {
+                const container = document.getElementById('users-container');
+                const userCount = document.getElementById('user-count');
+                
+                // Clear existing users (except "You")
+                const existingUsers = container.querySelectorAll('.user-item:not(:first-child)');
+                existingUsers.forEach(user => user.remove());
+                
+                // Add current users
+                this.users.forEach(user => {
+                    const userElement = document.createElement('div');
+                    userElement.className = 'user-item';
+                    userElement.innerHTML = `
+                        <div class="user-avatar" style="background: ${this.getUserColor(user.id)}">
+                            ${user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div>${user.name}</div>
+                            <small>Member</small>
+                        </div>
+                    `;
+                    container.appendChild(userElement);
+                });
+                
+                // Update count (including self)
+                userCount.textContent = this.users.size + 1;
+            }
+
+            updateObjectCount() {
+                const objectCount = document.getElementById('object-count');
+                const sceneObjects = Array.from(this.objects.values())
+                    .filter(obj => !obj.userData.type || obj.userData.type !== 'avatar');
+                objectCount.textContent = sceneObjects.length;
+            }
+
+            // Utility Methods
+            getUserColor(userId) {
+                // Generate consistent color from user ID
+                const hash = this.hashString(userId);
+                const hue = hash % 360;
+                return `hsl(${hue}, 70%, 60%)`;
+            }
+
+            hashString(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return Math.abs(hash);
+            }
+
+            getRandomColor() {
+                const colors = [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0xf9ca24, 0x6c5ce7, 0xa55eea];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            // Rendering
+            render() {
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            handleResize() {
+                const container = document.getElementById('ar-viewport');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(width, height);
+            }
+
+            // Notifications
+            showNotification(message, type = 'info') {
+                const container = document.getElementById('notifications');
+                
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                
+                container.appendChild(notification);
+                
+                // Auto-remove after 3 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+            }
+        }
+
+        // Initialize the base room when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.baseRoom = new BaseRoom();
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.baseRoom) {
+                window.baseRoom.leaveRoom();
+            }
+        });
+    </script>
+</body>
+</html>
