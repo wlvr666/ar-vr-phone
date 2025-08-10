@@ -1,1 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="AR/VR Communication Platform - Transform your smartphone into an AR/VR communication hub">
+    <title>AR/VR Communication Platform</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AR/VR Platform">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="AR/VR Communication Platform">
+    <meta property="og:description" content="Transform your smartphone into an AR/VR communication hub">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ar-vr-com-platform.com">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" as="script">
+    <link rel="preload" href="/socket.io/socket.io.js" as="script">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="logo">
+                <div class="logo-icon">🚀</div>
+                <h1>AR/VR Platform</h1>
+            </div>
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Initializing AR/VR Engine...</div>
+            <div class="loading-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="loading-progress"></div>
+                </div>
+                <div class="progress-text" id="loading-percentage">0%</div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Main Application Container -->
+    <div id="app-container" class="app-container hidden">
+        <!-- AR/VR Render Container -->
+        <div id="ar-container" class="ar-container"></div>
+        
+        <!-- UI Overlay -->
+        <div id="ui-overlay" class="ui-overlay">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button id="menu-button" class="icon-button">☰</button>
+                    <div class="room-info">
+                        <span id="room-name">No Room</span>
+                        <span id="user-count">0 users</span>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <button id="device-scan-button" class="icon-button">📡</button>
+                    <button id="settings-button" class="icon-button">⚙️</button>
+                </div>
+            </div>
+
+            <!-- Side Menu -->
+            <div id="side-menu" class="side-menu hidden">
+                <div class="menu-header">
+                    <h3>Menu</h3>
+                    <button id="close-menu" class="icon-button">✕</button>
+                </div>
+                <div class="menu-content">
+                    <div class="menu-section">
+                        <h4>Rooms</h4>
+                        <button id="create-room-btn" class="menu-button">Create Room</button>
+                        <button id="join-room-btn" class="menu-button">Join Room</button>
+                        <button id="leave-room-btn" class="menu-button">Leave Room</button>
+                    </div>
+                    <div class="menu-section">
+                        <h4>AR/VR</h4>
+                        <button id="start-ar-btn" class="menu-button">Start AR</button>
+                        <button id="start-vr-btn" class="menu-button">Start VR</button>
+                        <button id="stop-xr-btn" class="menu-button">Stop Session</button>
+                    </div>
+                    <div class="menu-section">
+                        <h4>Devices</h4>
+                        <div id="device-list" class="device-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="bottom-controls">
+                <div class="control-group">
+                    <button id="mic-toggle" class="control-button active">🎤</button>
+                    <button id="camera-toggle" class="control-button active">📹</button>
+                    <button id="speaker-toggle" class="control-button active">🔊</button>
+                </div>
+                <div class="control-group">
+                    <button id="add-object-btn" class="control-button">➕</button>
+                    <button id="hand-tracking-btn" class="control-button">✋</button>
+                    <button id="spatial-audio-btn" class="control-button">🎵</button>
+                </div>
+            </div>
+
+            <!-- Object Spawner Panel -->
+            <div id="object-panel" class="object-panel hidden">
+                <h4>Add Object</h4>
+                <div class="object-types">
+                    <button class="object-type" data-type="cube">📦 Cube</button>
+                    <button class="object-type" data-type="sphere">⚽ Sphere</button>
+                    <button class="object-type" data-type="plane">⬜ Plane</button>
+                    <button class="object-type" data-type="avatar">👤 Avatar</button>
+                </div>
+                <button id="close-object-panel" class="close-button">Close</button>
+            </div>
+
+            <!-- Connection Status -->
+            <div id="connection-status" class="connection-status">
+                <div class="status-item">
+                    <span class="status-label">Server:</span>
+                    <span id="server-status" class="status-value disconnected">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">XR:</span>
+                    <span id="xr-status" class="status-value inactive">Inactive</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Devices:</span>
+                    <span id="device-status" class="status-value">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Dialogs -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <!-- Create Room Modal -->
+            <div id="create-room-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h3>Create Room</h3>
+                    <form id="create-room-form">
+                        <div class="form-group">
+                            <label for="room-name-input">Room Name:</label>
+                            <input type="text" id="room-name-input" required placeholder="Enter room name">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="private-room-checkbox">
+                                Private Room
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="max-users-input">Max Users:</label>
+                            <input type="number" id="max-users-input" min="2" max="50" value="10">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancel-create-room">Cancel</button>
+                            <button type="submit">Create</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Join Room Modal -->
+            <div id="join-room-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h3>Join Room</h3>
+                    <div id="room-list" class="room-list">
+                        <div class="loading">Loading rooms...</div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancel-join-room">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Control Modal -->
+            <div id="device-control-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h3>Device Control</h3>
+                    <div id="device-control-content">
+                        <p>Select a device to control</p>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="close-device-control">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div id="notifications" class="notifications"></div>
+
+        <!-- Debug Panel (Development) -->
+        <div id="debug-panel" class="debug-panel hidden">
+            <h4>Debug Info</h4>
+            <div id="debug-content">
+                <div>FPS: <span id="fps-counter">0</span></div>
+                <div>Objects: <span id="object-counter">0</span></div>
+                <div>Users: <span id="user-counter">0</span></div>
+                <div>Latency: <span id="latency-counter">0ms</span></div>
+            </div>
+            <button id="toggle-debug">Hide Debug</button>
+        </div>
+    </div>
+
+    <!-- Error Fallback -->
+    <div id="error-screen" class="error-screen hidden">
+        <div class="error-content">
+            <h2>⚠️ Something went wrong</h2>
+            <p id="error-message">An unexpected error occurred.</p>
+            <div class="error-actions">
+                <button id="retry-button">Retry</button>
+                <button id="reload-button">Reload Page</button>
+            </div>
+            <details class="error-details">
+                <summary>Technical Details</summary>
+                <pre id="error-stack"></pre>
+            </details>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="js/main.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+
+    <!-- Performance Monitoring -->
+    <script>
+        // Basic performance monitoring
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const perfData = performance.getEntriesByType('navigation')[0];
+                console.log('Page Load Time:', perfData.loadEventEnd - perfData.fetchStart, 'ms');
+            }, 0);
+        });
+    </script>
+</body>
+</html>
