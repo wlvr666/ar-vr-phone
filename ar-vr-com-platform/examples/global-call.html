@@ -1,1 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR/VR Global Call Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* AR/VR Canvas */
+        #ar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* UI Overlay */
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ui-overlay > * {
+            pointer-events: auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #44ff44;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .side-panel.hidden {
+            transform: translateX(-100%);
+        }
+
+        .panel-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Room List */
+        .room-list {
+            display: none;
+        }
+
+        .room-list.active {
+            display: block;
+        }
+
+        .room-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .room-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .room-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .room-info {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Participants List */
+        .participants-list {
+            display: none;
+        }
+
+        .participants-list.active {
+            display: block;
+        }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+        }
+
+        .participant-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .participant-info {
+            flex: 1;
+        }
+
+        .participant-name {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .participant-status {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* Devices Panel */
+        .devices-list {
+            display: none;
+        }
+
+        .devices-list.active {
+            display: block;
+        }
+
+        .device-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+        }
+
+        .device-info {
+            flex: 1;
+        }
+
+        .device-name {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .device-type {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .device-connect-btn {
+            padding: 6px 12px;
+            background: #4ecdc4;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .device-connect-btn:hover {
+            background: #45b7b8;
+        }
+
+        .device-connect-btn.connected {
+            background: #27ae60;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .control-btn.mic {
+            background: #27ae60;
+        }
+
+        .control-btn.mic.muted {
+            background: #e74c3c;
+        }
+
+        .control-btn.camera {
+            background: #3498db;
+        }
+
+        .control-btn.camera.off {
+            background: #95a5a6;
+        }
+
+        .control-btn.ar {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+        }
+
+        .control-btn.vr {
+            background: linear-gradient(45deg, #a855f7, #ec4899);
+        }
+
+        .control-btn.share {
+            background: #f39c12;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* XR Mode Indicators */
+        .xr-mode-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .xr-mode-indicator.active {
+            display: block;
+        }
+
+        .xr-mode-indicator.ar {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+        }
+
+        .xr-mode-indicator.vr {
+            background: linear-gradient(45deg, #a855f7, #ec4899);
+        }
+
+        /* Performance Monitor */
+        .performance-monitor {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+            display: none;
+        }
+
+        .performance-monitor.show {
+            display: block;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .side-panel {
+                width: 100%;
+                position: absolute;
+                left: 0;
+                top: 0;
+                height: 100%;
+                z-index: 20;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .control-panel {
+                bottom: 10px;
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .control-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .loading-progress {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid #27ae60;
+        }
+
+        .toast.error {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .toast.info {
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Initializing AR/VR Platform</div>
+            <div class="loading-progress" id="loadingProgress">Checking device capabilities...</div>
+        </div>
+
+        <!-- AR/VR Canvas Container -->
+        <div id="ar-container"></div>
+
+        <!-- UI Overlay -->
+        <div class="ui-overlay">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">🌐 Global Call</div>
+                <div class="connection-status">
+                    <div class="status-indicator" id="connectionStatus"></div>
+                    <span id="connectionText">Connecting...</span>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Side Panel -->
+                <div class="side-panel" id="sidePanel">
+                    <div class="panel-tabs">
+                        <button class="tab active" data-tab="rooms">Rooms</button>
+                        <button class="tab" data-tab="participants">Users</button>
+                        <button class="tab" data-tab="devices">Devices</button>
+                    </div>
+
+                    <div class="panel-content">
+                        <!-- Rooms Tab -->
+                        <div class="room-list active" id="roomsTab">
+                            <div class="room-item" data-room="lobby">
+                                <div class="room-name">🏠 Virtual Lobby</div>
+                                <div class="room-info">3 participants • Public</div>
+                            </div>
+                            <div class="room-item" data-room="meeting">
+                                <div class="room-name">📊 Conference Room</div>
+                                <div class="room-info">8 participants • Private</div>
+                            </div>
+                            <div class="room-item" data-room="creative">
+                                <div class="room-name">🎨 Creative Space</div>
+                                <div class="room-info">5 participants • Public</div>
+                            </div>
+                            <div class="room-item" data-room="gaming">
+                                <div class="room-name">🎮 Gaming Zone</div>
+                                <div class="room-info">12 participants • Public</div>
+                            </div>
+                        </div>
+
+                        <!-- Participants Tab -->
+                        <div class="participants-list" id="participantsTab">
+                            <div class="participant-item">
+                                <div class="participant-avatar">A</div>
+                                <div class="participant-info">
+                                    <div class="participant-name">Alice Johnson</div>
+                                    <div class="participant-status">🔊 Speaking</div>
+                                </div>
+                            </div>
+                            <div class="participant-item">
+                                <div class="participant-avatar">B</div>
+                                <div class="participant-info">
+                                    <div class="participant-name">Bob Wilson</div>
+                                    <div class="participant-status">🤫 Muted</div>
+                                </div>
+                            </div>
+                            <div class="participant-item">
+                                <div class="participant-avatar">C</div>
+                                <div class="participant-info">
+                                    <div class="participant-name">Carol Smith</div>
+                                    <div class="participant-status">👀 Listening</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Devices Tab -->
+                        <div class="devices-list" id="devicesTab">
+                            <div class="device-item">
+                                <div class="device-info">
+                                    <div class="device-name">Smart Lights</div>
+                                    <div class="device-type">IoT • Philips Hue</div>
+                                </div>
+                                <button class="device-connect-btn">Connect</button>
+                            </div>
+                            <div class="device-item">
+                                <div class="device-info">
+                                    <div class="device-name">Haptic Gloves</div>
+                                    <div class="device-type">Wearable • SenseGlove</div>
+                                </div>
+                                <button class="device-connect-btn connected">Connected</button>
+                            </div>
+                            <div class="device-item">
+                                <div class="device-info">
+                                    <div class="device-name">Audio System</div>
+                                    <div class="device-type">Audio • Sonos</div>
+                                </div>
+                                <button class="device-connect-btn">Connect</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <button class="control-btn mic" id="micBtn" title="Toggle Microphone">
+                    🎤
+                </button>
+                <button class="control-btn camera" id="cameraBtn" title="Toggle Camera">
+                    📹
+                </button>
+                <button class="control-btn ar" id="arBtn" title="Start AR Mode">
+                    🔍
+                </button>
+                <button class="control-btn vr" id="vrBtn" title="Start VR Mode">
+                    🥽
+                </button>
+                <button class="control-btn share" id="shareBtn" title="Share Screen">
+                    📤
+                </button>
+            </div>
+
+            <!-- XR Mode Indicator -->
+            <div class="xr-mode-indicator" id="xrModeIndicator">
+                AR Mode Active
+            </div>
+
+            <!-- Performance Monitor -->
+            <div class="performance-monitor" id="performanceMonitor">
+                <div>FPS: <span id="fpsCounter">60</span></div>
+                <div>Memory: <span id="memoryUsage">0</span> MB</div>
+                <div>Connections: <span id="connectionCount">0</span></div>
+                <div>Objects: <span id="objectCount">0</span></div>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script type="module">
+        import AREngine from './js/ar-engine.js';
+        
+        class GlobalCallApp {
+            constructor() {
+                this.socket = null;
+                this.arEngine = null;
+                this.isConnected = false;
+                this.currentRoom = null;
+                this.currentUserId = null;
+                this.isMuted = false;
+                this.isCameraOff = false;
+                
+                this.init();
+            }
+
+            async init() {
+                console.log('Initializing Global Call App...');
+                
+                // Initialize socket connection
+                await this.initSocket();
+                
+                // Initialize AR/VR engine
+                await this.initAREngine();
+                
+                // Setup UI handlers
+                this.setupUIHandlers();
+                
+                // Hide loading screen
+                this.hideLoadingScreen();
+                
+                console.log('Global Call App initialized');
+            }
+
+            async initSocket() {
+                this.updateLoadingProgress('Connecting to server...');
+                
+                this.socket = io();
+                
+                this.socket.on('connect', () => {
+                    this.isConnected = true;
+                    this.updateConnectionStatus(true);
+                    this.showToast('Connected to server', 'success');
+                });
+
+                this.socket.on('disconnect', () => {
+                    this.isConnected = false;
+                    this.updateConnectionStatus(false);
+                    this.showToast('Disconnected from server', 'error');
+                });
+
+                this.socket.on('room-joined', (data) => {
+                    this.currentRoom = data.roomId;
+                    this.showToast(`Joined room: ${data.roomName}`, 'success');
+                    this.updateParticipants(data.participants);
+                });
+
+                this.socket.on('user-joined', (data) => {
+                    this.showToast(`${data.userName} joined the room`, 'info');
+                    this.addParticipant(data);
+                });
+
+                this.socket.on('user-left', (data) => {
+                    this.showToast(`${data.userName} left the room`, 'info');
+                    this.removeParticipant(data.userId);
+                });
+
+                this.socket.on('position-update', (data) => {
+                    if (this.arEngine) {
+                        this.arEngine.updateUserPosition(data.userId, data.position, data.rotation);
+                    }
+                });
+
+                this.socket.on('object-spawned', (data) => {
+                    if (this.arEngine) {
+                        this.arEngine.spawnObject(data);
+                    }
+                });
+
+                this.socket.on('device-discovered', (data) => {
+                    this.addDevice(data);
+                });
+            }
+
+            async initAREngine() {
+                this.updateLoadingProgress('Initializing AR/VR engine...');
+                
+                this.arEngine = new AREngine();
+                
+                // Set up AR engine event handlers
+                this.arEngine.on('xr-support-checked', (support) => {
+                    console.log('XR Support:', support);
+                    this.updateXRButtons(support);
+                });
+
+                this.arEngine.on('session-started', (data) => {
+                    this.updateXRModeIndicator(data.mode);
+                    this.showToast(`${data.mode.toUpperCase()} session started`, 'success');
+                });
+
+                this.arEngine.on('session-ended', () => {
+                    this.updateXRModeIndicator(null);
+                    this.showToast('XR session ended', 'info');
+                });
+
+                this.arEngine.on('object-interaction', (data) => {
+                    if (this.socket && this.currentRoom) {
+                        this.socket.emit('interact-object', {
+                            roomId: this.currentRoom,
+                            ...data
+                        });
+                    }
+                });
+
+                this.arEngine.on('performance-update', (metrics) => {
+                    this.updatePerformanceMonitor(metrics);
+                });
+
+                this.arEngine.on('gesture-tap', (data) => {
+                    console.log('Tap gesture detected:', data);
+                });
+
+                this.arEngine.on('gesture-swipe', (data) => {
+                    console.log('Swipe gesture detected:', data);
+                });
+            }
+
+            setupUIHandlers() {
+                // Tab switching
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+                });
+
+                // Room selection
+                document.querySelectorAll('.room-item').forEach(item => {
+                    item.addEventListener('click', () => this.joinRoom(item.dataset.room));
+                });
+
+                // Control buttons
+                document.getElementById('micBtn').addEventListener('click', () => this.toggleMicrophone());
+                document.getElementById('cameraBtn').addEventListener('click', () => this.toggleCamera());
+                document.getElementById('arBtn').addEventListener('click', () => this.startARSession());
+                document.getElementById('vrBtn').addEventListener('click', () => this.startVRSession());
+                document.getElementById('shareBtn').addEventListener('click', () => this.shareScreen());
+
+                // Device connection buttons
+                document.querySelectorAll('.device-connect-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.toggleDeviceConnection(btn);
+                    });
+                });
+
+                // Performance monitor toggle (double-click on logo)
+                document.querySelector('.logo').addEventListener('dblclick', () => {
+                    this.togglePerformanceMonitor();
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'm' && e.ctrlKey) {
+                        e.preventDefault();
+                        this.toggleMicrophone();
+                    } else if (e.key === 'v' && e.ctrlKey) {
+                        e.preventDefault();
+                        this.toggleCamera();
+                    }
+                });
+            }
+
+            // UI Methods
+            switchTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.tab === tabName);
+                });
+
+                // Update tab content
+                document.querySelectorAll('[id$="Tab"]').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabName + 'Tab').classList.add('active');
+            }
+
+            joinRoom(roomId) {
+                if (this.socket) {
+                    this.socket.emit('join-room', { roomId });
+                }
+            }
+
+            toggleMicrophone() {
+                this.isMuted = !this.isMuted;
+                const btn = document.getElementById('micBtn');
+                btn.classList.toggle('muted', this.isMuted);
+                btn.textContent = this.isMuted ? '🔇' : '🎤';
+                
+                this.showToast(this.isMuted ? 'Microphone muted' : 'Microphone unmuted', 'info');
+            }
+
+            toggleCamera() {
+                this.isCameraOff = !this.isCameraOff;
+                const btn = document.getElementById('cameraBtn');
+                btn.classList.toggle('off', this.isCameraOff);
+                btn.textContent = this.isCameraOff ? '📷' : '📹';
+                
+                this.showToast(this.isCameraOff ? 'Camera turned off' : 'Camera turned on', 'info');
+            }
+
+            async startARSession() {
+                try {
+                    await this.arEngine.startSession('immersive-ar');
+                } catch (error) {
+                    this.showToast('Failed to start AR session: ' + error.message, 'error');
+                }
+            }
+
+            async startVRSession() {
+                try {
+                    await this.arEngine.startSession('immersive-vr');
+                } catch (error) {
+                    this.showToast('Failed to start VR session: ' + error.message, 'error');
+                }
+            }
+
+            shareScreen() {
+                this.showToast('Screen sharing feature coming soon!', 'info');
+            }
+
+            toggleDeviceConnection(btn) {
+                const isConnected = btn.classList.contains('connected');
+                if (isConnected) {
+                    btn.classList.remove('connected');
+                    btn.textContent = 'Connect';
+                } else {
+                    btn.classList.add('connected');
+                    btn.textContent = 'Connected';
+                }
+            }
+
+            // Status Updates
+            updateConnectionStatus(connected) {
+                const indicator = document.getElementById('connectionStatus');
+                const text = document.getElementById('connectionText');
+                
+                indicator.classList.toggle('connected', connected);
+                text.textContent = connected ? 'Connected' : 'Disconnected';
+            }
+
+            updateXRButtons(support) {
+                document.getElementById('arBtn').disabled = !support.ar;
+                document.getElementById('vrBtn').disabled = !support.vr;
+            }
+
+            updateXRModeIndicator(mode) {
+                const indicator = document.getElementById('xrModeIndicator');
+                indicator.classList.remove('active', 'ar', 'vr');
+                
+                if (mode) {
+                    indicator.classList.add('active', mode);
+                    indicator.textContent = `${mode.toUpperCase()} Mode Active`;
+                }
+            }
+
+            updatePerformanceMonitor(metrics) {
+                document.getElementById('fpsCounter').textContent = metrics.fps || 0;
+                document.getElementById('memoryUsage').textContent = metrics.memory?.used || 0;
+                document.getElementById('connectionCount').textContent = Object.keys(this.arEngine?.userObjects || {}).length;
+                document.getElementById('objectCount').textContent = this.arEngine?.sharedObjects?.size || 0;
+            }
+
+            togglePerformanceMonitor() {
+                document.getElementById('performanceMonitor').classList.toggle('show');
+            }
+
+            // Helper Methods
+            updateLoadingProgress(text) {
+                document.getElementById('loadingProgress').textContent = text;
+            }
+
+            hideLoadingScreen() {
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').classList.add('hidden');
+                }, 1000);
+            }
+
+            showToast(message, type = 'info') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                
+                container.appendChild(toast);
+                
+                // Trigger animation
+                setTimeout(() => toast.classList.add('show'), 100);
+                
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => container.removeChild(toast), 300);
+                }, 3000);
+            }
+
+            addParticipant(participant) {
+                // Implementation for adding participant to UI
+                console.log('Adding participant:', participant);
+            }
+
+            removeParticipant(userId) {
+                // Implementation for removing participant from UI
+                console.log('Removing participant:', userId);
+            }
+
+            updateParticipants(participants) {
+                // Implementation for updating participants list
+                console.log('Updating participants:', participants);
+            }
+
+            addDevice(device) {
+                // Implementation for adding device to UI
+                console.log('Adding device:', device);
+            }
+        }
+
+        // Start the application
+        window.addEventListener('DOMContentLoaded', () => {
+            window.globalCallApp = new GlobalCallApp();
+        });
+    </script>
+</body>
+</html>
