@@ -1,1 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal AR/VR Platform</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <meta name="description" content="Connect to any device, communicate globally through AR/VR">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Required for WebXR and device APIs -->
+    <meta name="permissions" content="camera microphone bluetooth nfc">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-container">
+            <div class="logo">🌐</div>
+            <h1>Universal AR/VR</h1>
+            <div class="loading-bar">
+                <div class="progress" id="progress-bar"></div>
+            </div>
+            <p id="loading-status">Initializing platform...</p>
+        </div>
+    </div>
 
+    <!-- Main UI -->
+    <div id="main-ui" class="main-ui hidden">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="status-indicators">
+                <span id="connection-status" class="status offline">●</span>
+                <span id="device-count" class="device-count">0 devices</span>
+                <span id="user-count" class="user-count">1 user</span>
+            </div>
+            <div class="controls">
+                <button id="settings-btn" class="icon-btn">⚙️</button>
+                <button id="help-btn" class="icon-btn">❓</button>
+            </div>
+        </header>
+
+        <!-- Device Panel -->
+        <div id="device-panel" class="side-panel left">
+            <h3>Connected Devices</h3>
+            <div class="device-list" id="device-list">
+                <!-- Devices will be populated dynamically -->
+            </div>
+            <button id="scan-devices-btn" class="primary-btn">
+                🔍 Scan for Devices
+            </button>
+        </div>
+
+        <!-- Communication Panel -->
+        <div id="comm-panel" class="side-panel right">
+            <h3>Active Calls</h3>
+            <div class="call-list" id="call-list">
+                <!-- Active calls will be shown here -->
+            </div>
+            <div class="call-controls">
+                <input type="text" id="room-id" placeholder="Room ID or create new">
+                <button id="create-room-btn" class="primary-btn">
+                    🏠 Create Room
+                </button>
+                <button id="join-room-btn" class="secondary-btn">
+                    🚪 Join Room
+                </button>
+            </div>
+        </div>
+
+        <!-- Main AR/VR View -->
+        <div id="ar-container" class="ar-container">
+            <canvas id="ar-canvas" class="ar-canvas"></canvas>
+            
+            <!-- AR/VR UI Overlay -->
+            <div class="ar-overlay">
+                <div class="ar-controls">
+                    <button id="ar-btn" class="ar-control-btn">
+                        📱 Start AR
+                    </button>
+                    <button id="vr-btn" class="ar-control-btn">
+                        🥽 Start VR
+                    </button>
+                    <button id="share-space-btn" class="ar-control-btn disabled">
+                        🌍 Share Space
+                    </button>
+                </div>
+                
+                <!-- Spatial UI Elements -->
+                <div id="spatial-ui" class="spatial-ui hidden">
+                    <div class="virtual-objects">
+                        <!-- Virtual objects and avatars -->
+                    </div>
+                    <div class="interaction-hints">
+                        <!-- Gesture and interaction hints -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Action Bar -->
+        <div class="bottom-bar">
+            <button id="mic-btn" class="action-btn">
+                🎤 <span>Mute</span>
+            </button>
+            <button id="video-btn" class="action-btn">
+                📹 <span>Camera</span>
+            </button>
+            <button id="screen-share-btn" class="action-btn">
+                📺 <span>Share</span>
+            </button>
+            <button id="end-call-btn" class="action-btn danger hidden">
+                📞 <span>End Call</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="close-settings" class="close-btn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <h3>Device Discovery</h3>
+                    <label>
+                        <input type="checkbox" id="bluetooth-enabled" checked>
+                        Enable Bluetooth scanning
+                    </label>
+                    <label>
+                        <input type="checkbox" id="wifi-enabled" checked>
+                        Enable WiFi Direct
+                    </label>
+                    <label>
+                        <input type="checkbox" id="nfc-enabled" checked>
+                        Enable NFC
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <h3>AR/VR Preferences</h3>
+                    <label>
+                        <input type="range" id="ar-quality" min="1" max="5" value="3">
+                        AR Quality: <span id="ar-quality-value">Medium</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="spatial-audio" checked>
+                        Enable Spatial Audio
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <h3>Privacy</h3>
+                    <label>
+                        <input type="checkbox" id="auto-accept" checked>
+                        Auto-accept room invitations from contacts
+                    </label>
+                    <label>
+                        <input type="checkbox" id="device-sharing" checked>
+                        Allow others to control my devices
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notifications" class="notifications"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <!-- Application Scripts -->
+    <script type="module" src="js/device-connector.js"></script>
+    <script type="module" src="js/ar-engine.js"></script>
+    <script type="module" src="js/webrtc-client.js"></script>
+    <script type="module" src="js/spatial-audio.js"></script>
+    <script type="module" src="js/ui-manager.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
