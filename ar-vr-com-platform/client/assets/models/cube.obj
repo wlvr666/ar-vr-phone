@@ -1,0 +1,60 @@
+# Basic Cube Model for AR/VR Communication Platform
+# Created for spawning basic geometric objects in AR/VR space
+
+# Material library
+mtllib cube.mtl
+
+# Object name
+o Cube
+
+# Vertices (8 corners of a unit cube centered at origin)
+v -0.5 -0.5 -0.5
+v  0.5 -0.5 -0.5
+v  0.5  0.5 -0.5
+v -0.5  0.5 -0.5
+v -0.5 -0.5  0.5
+v  0.5 -0.5  0.5
+v  0.5  0.5  0.5
+v -0.5  0.5  0.5
+
+# Texture coordinates
+vt 0.0 0.0
+vt 1.0 0.0
+vt 1.0 1.0
+vt 0.0 1.0
+
+# Vertex normals
+vn  0.0  0.0 -1.0  # Front face
+vn  0.0  0.0  1.0  # Back face
+vn  0.0 -1.0  0.0  # Bottom face
+vn  0.0  1.0  0.0  # Top face
+vn -1.0  0.0  0.0  # Left face
+vn  1.0  0.0  0.0  # Right face
+
+# Use material
+usemtl CubeMaterial
+
+# Faces (using vertex/texture/normal indices)
+# Front face
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 3/3/1 4/4/1
+
+# Back face
+f 6/1/2 5/2/2 8/3/2
+f 6/1/2 8/3/2 7/4/2
+
+# Bottom face
+f 1/1/3 5/2/3 6/3/3
+f 1/1/3 6/3/3 2/4/3
+
+# Top face
+f 4/1/4 3/2/4 7/3/4
+f 4/1/4 7/3/4 8/4/4
+
+# Left face
+f 1/1/5 4/2/5 8/3/5
+f 1/1/5 8/3/5 5/4/5
+
+# Right face
+f 2/1/6 6/2/6 7/3/6
+f 2/1/6 7/3/6 3/4/6
